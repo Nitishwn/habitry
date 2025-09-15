@@ -130,12 +130,12 @@ function App() {
           <div className="flex items-center justify-center space-x-3 mb-4">
             <Sparkles className="w-10 h-10 text-purple-600 animate-pulse" />
             <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Consistency Tracker
+              Habitry
             </h1>
             <Sparkles className="w-10 h-10 text-blue-600 animate-pulse" style={{ animationDelay: '0.5s' }} />
           </div>
           <p className="text-gray-600 dark:text-gray-300 text-xl font-medium">
-            Turn your daily progress into a beautiful puzzle reveal
+            Turn your daily progress into a beautiful memory
           </p>
           <div className="mt-4 inline-flex items-center px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-full shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2" />

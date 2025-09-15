@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Camera, Link, FileText, Heart, Star, Zap } from 'lucide-react';
+import { X, Camera, Link, FileText, Heart, Star, Zap, Trash2 } from 'lucide-react';
 import { DayNote } from '../types';
 
 interface DayNoteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (note: DayNote) => void;
+  onRevoke?: () => void; // New prop for revoking the day
   day: number;
   existingNote?: DayNote;
 }
@@ -14,6 +15,7 @@ export const DayNoteModal: React.FC<DayNoteModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  onRevoke,
   day,
   existingNote,
 }) => {
@@ -175,15 +177,28 @@ export const DayNoteModal: React.FC<DayNoteModalProps> = ({
         </div>
 
         <div className="flex space-x-3 p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 rounded-b-3xl">
+          {existingNote && (
+            <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to un-complete this day? All memories will be lost.')) {
+                  onRevoke?.();
+                }
+              }}
+              className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 hover:scale-105 flex items-center space-x-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Revoke Day</span>
+            </button>
+          )}
           <button
             onClick={onClose}
-            className="flex-1 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
+            className={`flex-1 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105 ${!existingNote ? 'flex-1' : ''}`}
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 border border-transparent rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
+            className={`flex-1 px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 border border-transparent rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${!existingNote ? 'flex-1' : ''}`}
           >
             <Heart className="w-4 h-4 inline mr-2" />
             Save Memory

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Challenge, DayNote } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useDarkMode } from './hooks/useDarkMode';
@@ -7,14 +7,14 @@ import { ChallengeSelector } from './components/ChallengeSelector';
 import { ChallengeHeader } from './components/ChallengeHeader';
 import { PuzzleGrid } from './components/PuzzleGrid';
 import { DayNoteModal } from './components/DayNoteModal';
-import { JourneyReview } from './components/JourneyReview';
 import { DarkModeToggle } from './components/DarkModeToggle';
 import { Sparkles } from 'lucide-react';
-import { ChallengeCompletionModal } from './components/ChallengeCompletionModal'; // New Import
+import { ChallengeCompletionModal } from './components/ChallengeCompletionModal';
+import { ArchivedChallengeView } from './components/ArchivedChallengeView';
 
 function App() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  
+
   const challengeDeserializer = (data: any[]): Challenge[] => {
     return data.map(challenge => ({
       ...challenge,
@@ -26,15 +26,22 @@ function App() {
   const [activeChallengeId, setActiveChallengeId] = useLocalStorage<string | null>('active-challenge-id', null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [showJourneyReview, setShowJourneyReview] = useState(false);
-  const [showCompletionModal, setShowCompletionModal] = useState(false); // New state for completion modal
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
 
   const activeChallenge = challenges.find(c => c.id === activeChallengeId) || null;
+
+  const { activeChallenges, archivedChallenges } = useMemo(() => {
+    const active = challenges.filter(c => !c.isArchived);
+    const archived = challenges.filter(c => c.isArchived);
+    return { activeChallenges: active, archivedChallenges: archived };
+  }, [challenges]);
 
   const handleCreateChallenge = useCallback((name: string, duration: number, unit: 'days' | 'hours') => {
     const newChallenge = createChallenge(name, duration, unit);
     setChallenges(prev => [...prev, newChallenge]);
     setActiveChallengeId(newChallenge.id);
+    setActiveTab('active');
   }, [setChallenges, setActiveChallengeId]);
 
   const handleSelectChallenge = useCallback((challenge: Challenge) => {
@@ -65,7 +72,6 @@ function App() {
 
   const handleCellClick = useCallback((day: number) => {
     if (!activeChallenge) return;
-    
     setSelectedDay(day);
     setShowNoteModal(true);
     
@@ -75,8 +81,6 @@ function App() {
       const newCompletedDays = new Set(activeChallenge.completedDays);
       newCompletedDays.add(day);
       const { current, longest } = calculateStreaks(newCompletedDays);
-
-      const isChallengeCompleted = newCompletedDays.size >= activeChallenge.duration;
 
       setChallenges(prev => prev.map(challenge =>
         challenge.id === activeChallenge.id
@@ -88,34 +92,41 @@ function App() {
             }
           : challenge
       ));
-
-      if (isChallengeCompleted) {
-        setShowCompletionModal(true);
-      }
     }
   }, [activeChallenge, setChallenges]);
-
   const handleSaveNote = useCallback((note: DayNote) => {
-    if (!activeChallenge || !selectedDay) return;
+    if (!activeChallenge || selectedDay === null) return;
+    
+    let isChallengeCompleted = false;
 
-    setChallenges(prev => prev.map(challenge =>
-      challenge.id === activeChallenge.id
-        ? {
-            ...challenge,
-            notes: {
-              ...challenge.notes,
-              [selectedDay]: note
-            }
-          }
-        : challenge
-    ));
+    setChallenges(prev => prev.map(challenge => {
+      if (challenge.id === activeChallenge.id) {
+        const updatedNotes = {
+          ...challenge.notes,
+          [selectedDay]: note
+        };
+        // The correct logic is to check if the selected day is the final day
+        isChallengeCompleted = selectedDay === challenge.duration; 
+        return {
+          ...challenge,
+          notes: updatedNotes,
+          isArchived: isChallengeCompleted, // Archive upon completion
+        };
+      }
+      return challenge;
+    }));
+    
+    setShowNoteModal(false);
+    setSelectedDay(null);
 
-    setShowNoteModal(false);
-    setSelectedDay(null);
-  }, [activeChallenge, selectedDay, setChallenges]);
+    if (isChallengeCompleted) {
+      setShowCompletionModal(true);
+    }
+  }, [activeChallenge, selectedDay, setChallenges]);
+
 
   const handleRevokeDay = useCallback(() => {
-    if (!activeChallenge || !selectedDay) return;
+    if (!activeChallenge || selectedDay === null) return;
 
     const newCompletedDays = new Set(activeChallenge.completedDays);
     newCompletedDays.delete(selectedDay);
@@ -149,18 +160,15 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 relative overflow-hidden transition-colors duration-300">
-      {/* Animated background elements */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-blue-200 to-purple-200 dark:from-blue-800/30 dark:to-purple-800/30 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" />
       <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-gradient-to-br from-purple-200 to-pink-200 dark:from-purple-800/30 dark:to-pink-800/30 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" style={{ animationDelay: '2s' }} />
       <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-gradient-to-br from-indigo-200 to-blue-200 dark:from-indigo-800/30 dark:to-blue-800/30 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" style={{ animationDelay: '4s' }} />
       
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Dark Mode Toggle */}
         <div className="fixed top-6 right-6 z-40">
           <DarkModeToggle isDarkMode={isDarkMode} onToggle={toggleDarkMode} />
         </div>
         
-        {/* Header */}
         <div className="text-center mb-12 relative">
           <div className="flex items-center justify-center space-x-3 mb-2 py-2">
             <Sparkles className="w-10 h-10 text-purple-600 animate-pulse" />
@@ -178,32 +186,35 @@ function App() {
           </div>
         </div>
 
-        {/* Challenge Selector */}
         <ChallengeSelector
-          challenges={challenges}
+          challenges={activeTab === 'active' ? activeChallenges : archivedChallenges}
           activeChallenge={activeChallenge}
           onSelectChallenge={handleSelectChallenge}
           onCreateChallenge={handleCreateChallenge}
           onDeleteChallenge={handleDeleteChallenge}
           onUpdateChallengeImage={handleUpdateChallengeImage}
           onUpdateChallengeDuration={handleUpdateChallengeDuration}
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
         />
 
-        {/* Active Challenge Display */}
         {activeChallenge && (
-          <>
-            <ChallengeHeader 
-              challenge={activeChallenge} 
-              onOpenJourney={() => setShowJourneyReview(true)}
-            />
-            <PuzzleGrid
-              challenge={activeChallenge}
-              onCellClick={handleCellClick}
-            />
-          </>
+          activeChallenge.isArchived ? (
+            <ArchivedChallengeView challenge={activeChallenge} />
+          ) : (
+            <>
+              <ChallengeHeader 
+                challenge={activeChallenge} 
+                onOpenJourney={() => setActiveChallengeId(activeChallenge.id)} // Keep this here for now, but will be removed once JourneyReview is gone.
+              />
+              <PuzzleGrid
+                challenge={activeChallenge}
+                onCellClick={handleCellClick}
+              />
+            </>
+          )
         )}
-
-        {/* Day Note Modal */}
+        
         <DayNoteModal
           isOpen={showNoteModal}
           onClose={() => {
@@ -217,16 +228,6 @@ function App() {
           existingNote={selectedDay ? activeChallenge?.notes[selectedDay] : undefined}
         />
 
-        {/* Journey Review Modal */}
-        {activeChallenge && (
-          <JourneyReview
-            challenge={activeChallenge}
-            isOpen={showJourneyReview}
-            onClose={() => setShowJourneyReview(false)}
-          />
-        )}
-
-        {/* Completion Modal */}
         {activeChallenge && (
           <ChallengeCompletionModal
             challenge={activeChallenge}
@@ -235,7 +236,6 @@ function App() {
           />
         )}
 
-        {/* Footer */}
         <div className="text-center mt-16 relative">
           <div className="inline-flex items-center px-6 py-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse mr-3" />

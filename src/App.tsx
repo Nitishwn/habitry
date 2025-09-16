@@ -151,11 +151,11 @@ function App() {
         
         {/* Header */}
         <div className="text-center mb-12 relative">
-          <div className="flex items-center justify-center space-x-3 mb-4">
+          <div className="flex items-center justify-center space-x-3 mb-2 py-2">
             <Sparkles className="w-10 h-10 text-purple-600 animate-pulse" />
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Habitry
-            </h1>
+            <h1 className="text-5xl font-bold leading-normal bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Habitry
+          </h1>
             <Sparkles className="w-10 h-10 text-blue-600 animate-pulse" style={{ animationDelay: '0.5s' }} />
           </div>
           <p className="text-gray-600 dark:text-gray-300 text-xl font-medium">

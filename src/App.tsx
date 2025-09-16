@@ -10,6 +10,7 @@ import { DayNoteModal } from './components/DayNoteModal';
 import { JourneyReview } from './components/JourneyReview';
 import { DarkModeToggle } from './components/DarkModeToggle';
 import { Sparkles } from 'lucide-react';
+import { ChallengeCompletionModal } from './components/ChallengeCompletionModal'; // New Import
 
 function App() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
@@ -26,11 +27,12 @@ function App() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showJourneyReview, setShowJourneyReview] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false); // New state for completion modal
 
   const activeChallenge = challenges.find(c => c.id === activeChallengeId) || null;
 
-  const handleCreateChallenge = useCallback((name: string, duration: number) => {
-    const newChallenge = createChallenge(name, duration);
+  const handleCreateChallenge = useCallback((name: string, duration: number, unit: 'days' | 'hours') => {
+    const newChallenge = createChallenge(name, duration, unit);
     setChallenges(prev => [...prev, newChallenge]);
     setActiveChallengeId(newChallenge.id);
   }, [setChallenges, setActiveChallengeId]);
@@ -55,21 +57,27 @@ function App() {
     ));
   }, [setChallenges]);
 
+  const handleUpdateChallengeDuration = useCallback((id: string, newDuration: number) => {
+    setChallenges(prev => prev.map(challenge => 
+      challenge.id === id ? { ...challenge, duration: newDuration } : challenge
+    ));
+  }, [setChallenges]);
+
   const handleCellClick = useCallback((day: number) => {
     if (!activeChallenge) return;
     
-    // Always set the selected day and open the modal
     setSelectedDay(day);
     setShowNoteModal(true);
     
     const isCompleted = activeChallenge.completedDays.has(day);
 
     if (!isCompleted) {
-      // Mark as completed only if it wasn't before
       const newCompletedDays = new Set(activeChallenge.completedDays);
       newCompletedDays.add(day);
       const { current, longest } = calculateStreaks(newCompletedDays);
-      
+
+      const isChallengeCompleted = newCompletedDays.size >= activeChallenge.duration;
+
       setChallenges(prev => prev.map(challenge =>
         challenge.id === activeChallenge.id
           ? {
@@ -80,6 +88,10 @@ function App() {
             }
           : challenge
       ));
+
+      if (isChallengeCompleted) {
+        setShowCompletionModal(true);
+      }
     }
   }, [activeChallenge, setChallenges]);
 
@@ -129,10 +141,9 @@ function App() {
     setSelectedDay(null);
   }, [activeChallenge, selectedDay, setChallenges]);
 
-  // Create a default challenge if none exist
   useEffect(() => {
     if (challenges.length === 0) {
-      handleCreateChallenge('My First Challenge', 100);
+      handleCreateChallenge('My First Challenge', 100, 'days');
     }
   }, [challenges.length, handleCreateChallenge]);
 
@@ -154,8 +165,8 @@ function App() {
           <div className="flex items-center justify-center space-x-3 mb-2 py-2">
             <Sparkles className="w-10 h-10 text-purple-600 animate-pulse" />
             <h1 className="text-5xl font-bold leading-normal bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Habitry
-          </h1>
+              Habitry
+            </h1>
             <Sparkles className="w-10 h-10 text-blue-600 animate-pulse" style={{ animationDelay: '0.5s' }} />
           </div>
           <p className="text-gray-600 dark:text-gray-300 text-xl font-medium">
@@ -175,6 +186,7 @@ function App() {
           onCreateChallenge={handleCreateChallenge}
           onDeleteChallenge={handleDeleteChallenge}
           onUpdateChallengeImage={handleUpdateChallengeImage}
+          onUpdateChallengeDuration={handleUpdateChallengeDuration}
         />
 
         {/* Active Challenge Display */}
@@ -199,7 +211,7 @@ function App() {
             setSelectedDay(null);
           }}
           onSave={handleSaveNote}
-          onRevoke={handleRevokeDay} // Pass the new revoke function
+          onRevoke={handleRevokeDay}
           day={selectedDay || 1}
           key={selectedDay}
           existingNote={selectedDay ? activeChallenge?.notes[selectedDay] : undefined}
@@ -211,6 +223,15 @@ function App() {
             challenge={activeChallenge}
             isOpen={showJourneyReview}
             onClose={() => setShowJourneyReview(false)}
+          />
+        )}
+
+        {/* Completion Modal */}
+        {activeChallenge && (
+          <ChallengeCompletionModal
+            challenge={activeChallenge}
+            isOpen={showCompletionModal}
+            onClose={() => setShowCompletionModal(false)}
           />
         )}
 

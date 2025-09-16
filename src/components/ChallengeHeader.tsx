@@ -1,6 +1,6 @@
 import React from 'react';
 import { Challenge } from '../types';
-import { Calendar, Target, Flame, Trophy, BookOpen } from 'lucide-react';
+import { Calendar, Target, Flame, Trophy, BookOpen, Clock } from 'lucide-react';
 
 interface ChallengeHeaderProps {
   challenge: Challenge;
@@ -41,7 +41,7 @@ export const ChallengeHeader: React.FC<ChallengeHeaderProps> = ({ challenge, onO
           <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             {challenge.completedDays.size}
           </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">of {challenge.duration} days</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">of {challenge.duration} {challenge.unit}</div>
           {challenge.completedDays.size > 0 && (
             <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center animate-bounce">
               <span className="text-xs text-white font-bold">🔥</span>
@@ -69,13 +69,13 @@ export const ChallengeHeader: React.FC<ChallengeHeaderProps> = ({ challenge, onO
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         <div className="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors duration-200">
           <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
-            <Calendar className="w-5 h-5 text-white" />
+            {challenge.unit === 'hours' ? <Clock className="w-5 h-5 text-white" /> : <Calendar className="w-5 h-5 text-white" />}
           </div>
           <div>
             <div className="text-lg font-bold text-gray-900 dark:text-white">
               {challenge.completedDays.size}
             </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Completed</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Completed {challenge.unit}</div>
           </div>
         </div>
 
@@ -87,7 +87,7 @@ export const ChallengeHeader: React.FC<ChallengeHeaderProps> = ({ challenge, onO
             <div className="text-lg font-bold text-gray-900 dark:text-white">
               {daysRemaining}
             </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Remaining</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Remaining {challenge.unit}</div>
           </div>
         </div>
 

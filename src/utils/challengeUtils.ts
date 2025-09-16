@@ -1,6 +1,6 @@
 import { Challenge, DayNote } from '../types';
 
-export const createChallenge = (name: string, duration: number): Challenge => ({
+export const createChallenge = (name: string, duration: number, unit: 'days' | 'hours'): Challenge => ({
   id: crypto.randomUUID(),
   name,
   duration,
@@ -10,6 +10,7 @@ export const createChallenge = (name: string, duration: number): Challenge => ({
   notes: {},
   currentStreak: 0,
   longestStreak: 0,
+  unit, // New property
 });
 
 export const calculateStreaks = (completedDays: Set<number>): { current: number; longest: number } => {

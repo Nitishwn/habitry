@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Challenge } from '../types';
-import { Plus, Settings, Trash2, Upload } from 'lucide-react';
+import { Plus, Settings, Trash2, Upload, Clock, CalendarDays, Save, X } from 'lucide-react';
 
 interface ChallengeSelectorProps {
   challenges: Challenge[];
   activeChallenge: Challenge | null;
   onSelectChallenge: (challenge: Challenge) => void;
-  onCreateChallenge: (name: string, duration: number) => void;
+  onCreateChallenge: (name: string, duration: number, unit: 'days' | 'hours') => void;
   onDeleteChallenge: (id: string) => void;
   onUpdateChallengeImage: (id: string, image: string) => void;
+  onUpdateChallengeDuration: (id: string, newDuration: number) => void;
 }
 
 export const ChallengeSelector: React.FC<ChallengeSelectorProps> = ({
@@ -18,19 +19,41 @@ export const ChallengeSelector: React.FC<ChallengeSelectorProps> = ({
   onCreateChallenge,
   onDeleteChallenge,
   onUpdateChallengeImage,
+  onUpdateChallengeDuration,
 }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newChallengeName, setNewChallengeName] = useState('');
   const [newChallengeDuration, setNewChallengeDuration] = useState(100);
+  const [newChallengeUnit, setNewChallengeUnit] = useState<'days' | 'hours'>('days');
   const [showSettings, setShowSettings] = useState(false);
+  const [durationInput, setDurationInput] = useState(activeChallenge?.duration || 100);
+
+  useEffect(() => {
+    if (activeChallenge) {
+      setDurationInput(activeChallenge.duration);
+    }
+  }, [activeChallenge]);
 
   const handleCreateChallenge = (e: React.FormEvent) => {
     e.preventDefault();
+    // Ensure duration is at least 1 before creating
+    const finalDuration = Math.max(1, newChallengeDuration || 1);
     if (newChallengeName.trim()) {
-      onCreateChallenge(newChallengeName.trim(), newChallengeDuration);
+      onCreateChallenge(newChallengeName.trim(), finalDuration, newChallengeUnit);
       setNewChallengeName('');
       setNewChallengeDuration(100);
+      setNewChallengeUnit('days');
       setShowCreateForm(false);
+    }
+  };
+
+  const handleUpdateDuration = () => {
+    const finalDuration = Math.max(1, durationInput || 1);
+    if (activeChallenge && finalDuration >= activeChallenge.completedDays.size) {
+      onUpdateChallengeDuration(activeChallenge.id, finalDuration);
+      setShowSettings(false);
+    } else {
+      alert(`The new duration must be at least ${activeChallenge?.completedDays.size}.`);
     }
   };
 
@@ -47,7 +70,6 @@ export const ChallengeSelector: React.FC<ChallengeSelectorProps> = ({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-8 mb-6 border border-gray-100 dark:border-gray-700 relative overflow-hidden">
-      {/* Background decoration */}
       <div className="absolute top-0 left-0 w-20 h-20 bg-gradient-to-br from-purple-100 to-transparent rounded-full -translate-y-10 -translate-x-10" />
       
       <div className="flex items-center justify-between mb-4">
@@ -74,7 +96,6 @@ export const ChallengeSelector: React.FC<ChallengeSelectorProps> = ({
         </div>
       </div>
 
-      {/* Challenge Tabs */}
       <div className="flex flex-wrap gap-3 mb-6">
         {challenges.map((challenge) => (
           <button
@@ -93,14 +114,13 @@ export const ChallengeSelector: React.FC<ChallengeSelectorProps> = ({
                   ? 'bg-white bg-opacity-20'
                   : 'bg-gray-200 dark:bg-gray-600'
               }`}>
-                {challenge.completedDays.size}/{challenge.duration}
+                {challenge.completedDays.size}/{challenge.duration} {challenge.unit}
               </span>
             </div>
           </button>
         ))}
       </div>
 
-      {/* Settings Panel */}
       {showSettings && activeChallenge && (
         <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4">
           <div>
@@ -133,6 +153,30 @@ export const ChallengeSelector: React.FC<ChallengeSelectorProps> = ({
               )}
             </div>
           </div>
+          
+          {/* New Duration Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Change Duration ({activeChallenge.unit})
+            </label>
+            <div className="flex items-center space-x-3">
+              <input
+                type="number"
+                value={durationInput}
+                onChange={(e) => setDurationInput(parseInt(e.target.value) || 0)}
+                min={activeChallenge.completedDays.size}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+              />
+              <button
+                type="button"
+                onClick={handleUpdateDuration}
+                className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 border border-transparent rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 hover:scale-105 shadow-lg"
+              >
+                <Save className="w-4 h-4" />
+                <span>Save</span>
+              </button>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600 dark:text-gray-400">Delete Challenge</span>
@@ -152,7 +196,6 @@ export const ChallengeSelector: React.FC<ChallengeSelectorProps> = ({
         </div>
       )}
 
-      {/* Create Challenge Form */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
           <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-md w-full transform animate-slideUp">
@@ -181,12 +224,44 @@ export const ChallengeSelector: React.FC<ChallengeSelectorProps> = ({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                    Duration (days)
+                    Tracking Unit
+                  </label>
+                  <div className="flex space-x-4">
+                    <label className={`flex items-center space-x-2 px-4 py-2 rounded-xl cursor-pointer transition-colors ${newChallengeUnit === 'days' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                      <input
+                        type="radio"
+                        name="unit"
+                        value="days"
+                        checked={newChallengeUnit === 'days'}
+                        onChange={() => setNewChallengeUnit('days')}
+                        className="form-radio"
+                      />
+                      <CalendarDays className="w-4 h-4" />
+                      <span>Days</span>
+                    </label>
+                    <label className={`flex items-center space-x-2 px-4 py-2 rounded-xl cursor-pointer transition-colors ${newChallengeUnit === 'hours' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                      <input
+                        type="radio"
+                        name="unit"
+                        value="hours"
+                        checked={newChallengeUnit === 'hours'}
+                        onChange={() => setNewChallengeUnit('hours')}
+                        className="form-radio"
+                      />
+                      <Clock className="w-4 h-4" />
+                      <span>Hours</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Duration ({newChallengeUnit})
                   </label>
                   <input
                     type="number"
                     value={newChallengeDuration}
-                    onChange={(e) => setNewChallengeDuration(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => setNewChallengeDuration(parseInt(e.target.value) || 0)}
                     min="1"
                     max="365"
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
@@ -201,6 +276,7 @@ export const ChallengeSelector: React.FC<ChallengeSelectorProps> = ({
                     setShowCreateForm(false);
                     setNewChallengeName('');
                     setNewChallengeDuration(100);
+                    setNewChallengeUnit('days');
                   }}
                   className="flex-1 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 hover:scale-105"
                 >
